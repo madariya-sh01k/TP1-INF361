@@ -1,0 +1,21 @@
+Moussa25;Nguebitigue2000;TIGUE MOUSSA MADARIYA;693606003;madariya.tigue@facsciences-uy1.cm;/bin/bash
+DupontJ;Azerty123;DUPONT Jean;612345678;jean.dupont@mail.fr;/bin/bash
+ChenL;Passw0rd!;CHEN Li;698765432;li.chen@mail.cn;/bin/zsh
+SmithA;Secure#2024;SMITH Alice;611223344;alice.smith@mail.com;/bin/bash
+MullerK;MullerPass99;MULLER Klaus;605554433;klaus.muller@mail.de;/bin/bash
+GarciaM;Barcelona1;GARCIA Maria;600112233;maria.garcia@mail.es;/bin/bash
+RossiP;Roma2024!;ROSSI Paolo;633445566;paolo.rossi@mail.it;/bin/sh
+KimS;SeoulPass1;KIM Soo-min;677889900;soomin.kim@mail.kr;/bin/bash
+IvanovA;Moscow2024;IVANOV Alexey;644556677;alexey.ivanov@mail.ru;/bin/bash
+DialloF;Dakar2024;DIALLO Fatou;655667788;fatou.diallo@mail.sn;/bin/bash
+NguyenT;HanoiPass1;NGUYEN Thanh;688990011;thanh.nguyen@mail.vn;/bin/bash
+DuboisC;Paris75000;DUBOIS Claire;622334455;claire.dubois@mail.fr;/bin/zsh
+YamamotoH;Tokyo2024;YAMAMOTO Hiroshi;699887766;hiroshi.yamamoto@mail.jp;/bin/bash
+SilvaR;Lisboa99;SILVA Ricardo;611998877;ricardo.silva@mail.pt;/bin/bash
+AnderssonE;Stockholm1;ANDERSSON Erik;622009988;erik.andersson@mail.se;/bin/bash
+OkaforC;Lagos2024;OKAFOR Chinedu;633778899;chinedu.okafor@mail.ng;/bin/bash
+PatelR;Mumbai2024;PATEL Raj;644990011;raj.patel@mail.in;/bin/bash
+JohansenL;Oslo2024;JOHANSEN Lars;655112233;lars.johansen@mail.no;/bin/bash
+BernardP;BernardPass;BERNARD Pierre;677223344;pierre.bernard@mail.ch;/bin/bash
+GonzalezA;Gonzalez2024;GONZALEZ Ana;688334455;ana.gonzalez@mail.ar;/bin/bash
+TaylorM;London2024;TAYLOR Michael;699445566;michael.taylor@mail.uk;/bin/bash
