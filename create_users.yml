@@ -1,0 +1,301 @@
+# create_users.yml - Playbook Ansible pour création utilisateurs
+# TP INF361 - Administration Systèmes et Réseaux
+
+- name: Automatisation création utilisateurs INF 361
+  hosts: servers
+  become: yes
+  vars_files:
+    - users.yml
+  vars:
+    group_name: "students-inf-361"
+    server_ip: "{{ ansible_default_ipv4.address }}"
+    ssh_port: "22"
+    
+  tasks:
+    - name: Vérifier la connexion
+      ping:
+      
+    - name: Installer les paquets requis
+      apt:
+        name:
+          - openssh-server
+          - sudo
+          - adduser
+          - openssl
+          - quota
+          - mailutils
+          - postfix
+          - libpam-modules
+        state: present
+        update_cache: yes
+      
+    - name: Créer le groupe principal
+      group:
+        name: "{{ group_name }}"
+        state: present
+        system: yes
+      
+    - name: Bloquer l'usage de su pour le groupe
+      lineinfile:
+        path: /etc/pam.d/su
+        line: "auth required pam_wheel.so group={{ group_name }}"
+        state: present
+        create: yes
+        
+    - name: Créer les utilisateurs
+      user:
+        name: "{{ item.username }}"
+        comment: "{{ item.full_name }}"
+        shell: "{{ item.shell | default('/bin/bash') }}"
+        groups: "{{ group_name }},sudo"
+        append: yes
+        create_home: yes
+        password: "{{ item.password | password_hash('sha512') }}"
+        state: present
+      loop: "{{ users }}"
+      register: users_created
+      
+    - name: Forcer changement mot de passe à première connexion
+      shell: "chage -d 0 {{ item.username }}"
+      loop: "{{ users }}"
+      
+    - name: Configurer les shells personnalisés
+      block:
+        - name: Installer zsh si nécessaire
+          apt:
+            name: zsh
+            state: present
+          when: "'/bin/zsh' in users | map(attribute='shell') | list"
+          
+        - name: Vérifier existence des shells
+          shell: |
+            if [ -x "{{ item.shell }}" ]; then
+              echo "exists"
+            else
+              echo "missing"
+            fi
+          loop: "{{ users }}"
+          register: shell_check
+          changed_when: false
+          
+      rescue:
+        - name: Fallback sur bash si shell manquant
+          user:
+            name: "{{ item.item.username }}"
+            shell: /bin/bash
+          loop: "{{ shell_check.results }}"
+          when: item.stdout == "missing"
+          
+    - name: Créer les fichiers de bienvenue
+      copy:
+        dest: "/home/{{ item.username }}/WELCOME.txt"
+        content: |
+          ╔═══════════════════════════════════════════╗
+          ║        BIENVENUE SUR LE SERVEUR           ║
+          ║          TP INF 361 - ASR                 ║
+          ╚═══════════════════════════════════════════╝
+          
+          Bonjour {{ item.full_name }},
+          
+          Votre compte a été créé avec succès sur le serveur des TP.
+          
+          INFORMATIONS DE COMPTE :
+          • Nom d'utilisateur : {{ item.username }}
+          • Email : {{ item.email }}
+          • Téléphone : {{ item.phone }}
+          • Shell : {{ item.shell | default('/bin/bash') }}
+          
+          INFORMATIONS DE CONNEXION :
+          • Adresse IP : {{ server_ip }}
+          • Port SSH : {{ ssh_port }}
+          
+          COMMANDES UTILES :
+          • Connexion SSH : ssh {{ item.username }}@{{ server_ip }}
+          • Changer mot de passe : passwd
+          
+          CONSIGNES :
+          1. Changez votre mot de passe dès la première connexion
+          2. Espace disque limité à 15 Go
+          3. Mémoire limitée à 20% de la RAM
+          4. Usage de 'su' interdit pour votre groupe
+          
+          Date de création : {{ ansible_date_time.date }}
+          
+          Pour toute assistance, contactez l'administrateur.
+        owner: "{{ item.username }}"
+        group: "{{ item.username }}"
+        mode: '0644'
+      loop: "{{ users }}"
+      
+    - name: Configurer .bashrc pour afficher le message
+      lineinfile:
+        path: "/home/{{ item.username }}/.bashrc"
+        line: |
+          # Message de bienvenue
+          if [ -f ~/WELCOME.txt ] && [ -t 0 ]; then
+              cat ~/WELCOME.txt
+          fi
+        owner: "{{ item.username }}"
+        group: "{{ item.username }}"
+        create: yes
+      loop: "{{ users }}"
+      when: "'bash' in item.shell"
+      
+    - name: Configurer .zshrc pour zsh users
+      lineinfile:
+        path: "/home/{{ item.username }}/.zshrc"
+        line: |
+          # Message de bienvenue
+          if [ -f ~/WELCOME.txt ] && [ -t 0 ]; then
+              cat ~/WELCOME.txt
+          fi
+        owner: "{{ item.username }}"
+        group: "{{ item.username }}"
+        create: yes
+      loop: "{{ users }}"
+      when: "'zsh' in item.shell"
+      
+    - name: Configurer les quotas disque
+      block:
+        - name: Activer les quotas sur le système
+          mount:
+            path: /
+            fstype: ext4
+            opts: defaults,usrquota,grpquota
+            state: mounted
+            
+        - name: Initialiser les quotas
+          command: quotacheck -cum /
+          changed_when: false
+          
+        - name: Activer les quotas
+          command: quotaon /
+          changed_when: false
+          
+        - name: Définir quotas pour chaque utilisateur
+          command: setquota -u {{ item.username }} 15G 16G 0 0 /
+          loop: "{{ users }}"
+          
+      rescue:
+        - name: Journaliser si quotas non disponibles
+          debug:
+            msg: "Les quotas ne sont pas disponibles sur ce système"
+            
+    - name: Configurer limites mémoire via systemd
+      systemd:
+        name: "user-{{ item.username }}.slice"
+        state: started
+        enabled: yes
+        daemon_reload: yes
+        scope: user
+        memory_max: "20%"
+      loop: "{{ users }}"
+      
+    - name: Configurer les informations de contact
+      command: chfn -f "{{ item.full_name }}" -w "{{ item.phone }}" -o "{{ item.email }}" "{{ item.username }}"
+      loop: "{{ users }}"
+      changed_when: false
+      
+    - name: Envoyer email de notification
+      block:
+        - name: Démarrer Postfix
+          systemd:
+            name: postfix
+            state: started
+            enabled: yes
+            
+        - name: Envoyer email à chaque utilisateur
+          mail:
+            host: localhost
+            port: 25
+            subject: "Votre compte a été créé - Serveur TP INF 361"
+            body: |
+              Bonjour {{ item.full_name }},
+              
+              Félicitations ! Votre compte a été créé avec succès sur le serveur des travaux pratiques.
+              
+              INFORMATIONS DE CONNEXION :
+              • Adresse IP du serveur : {{ server_ip }}
+              • Port SSH : {{ ssh_port }}
+              • Nom d'utilisateur : {{ item.username }}
+              • Mot de passe initial : {{ item.password }}
+              
+              POUR VOUS CONNECTER :
+              ```bash
+              ssh {{ item.username }}@{{ server_ip }}
+              ```
+              
+              À LA PREMIÈRE CONNEXION :
+              1. Vous devrez changer votre mot de passe
+              2. Le message de bienvenue s'affichera automatiquement
+              
+              POUR TRANSMETTRE VOTRE CLÉ PUBLIQUE SSH :
+              
+              • Sur Linux/Mac :
+              ```bash
+              ssh-copy-id {{ item.username }}@{{ server_ip }}
+              ```
+              
+              • Sur Windows (PowerShell) :
+              ```powershell
+              type $env:USERPROFILE\.ssh\id_rsa.pub | ssh {{ item.username }}@{{ server_ip }} "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+              ```
+              
+              • Sur Windows (CMD) :
+              ```cmd
+              type %USERPROFILE%\.ssh\id_rsa.pub | ssh {{ item.username }}@{{ server_ip }} "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+              ```
+              
+              INFORMATIONS TECHNIQUES :
+              • Espace disque : 15 Go maximum
+              • Mémoire RAM : 20% maximum
+              • Shell par défaut : {{ item.shell | default('/bin/bash') }}
+              • Groupe : {{ group_name }}
+              
+              Pour toute assistance, contactez votre administrateur.
+              
+              Cordialement,
+              L'équipe d'administration TP INF 361
+            from: "admin@tp-inf361.cm"
+            to: "{{ item.email }}"
+          loop: "{{ users }}"
+          
+      rescue:
+        - name: Journaliser si email non envoyé
+          debug:
+            msg: "Les emails n'ont pas pu être envoyés (service mail non disponible)"
+            
+    - name: Générer le rapport d'exécution
+      copy:
+        dest: "/tmp/ansible_create_users_report.txt"
+        content: |
+          RAPPORT D'EXÉCUTION ANSIBLE
+          ===========================
+          Date : {{ ansible_date_time.date }} {{ ansible_date_time.time }}
+          Playbook : create_users.yml
+          Serveur : {{ ansible_hostname }}
+          IP : {{ server_ip }}
+          
+          UTILISATEURS CRÉÉS :
+          {% for user in users %}
+          - {{ user.username }} ({{ user.full_name }})
+          {% endfor %}
+          
+          CONFIGURATIONS APPLIQUÉES :
+          1. Groupe créé : {{ group_name }}
+          2. Nombre d'utilisateurs : {{ users | length }}
+          3. Quotas disque : 15 Go par utilisateur
+          4. Limites mémoire : 20% RAM
+          5. Emails envoyés : {{ users | length }}
+          
+          STATUT : TERMINÉ AVEC SUCCÈS
+        mode: '0644'
+        
+  post_tasks:
+    - name: Afficher le résumé
+      debug:
+        msg: |
+           * Création des utilisateurs terminée !
+           * {{ users | length }} utilisateurs créés
+           * Emails envoyés à tous les utilisateurs
+           * Rapport : /tmp/ansible_create_users_report.txt

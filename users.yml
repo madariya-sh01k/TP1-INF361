@@ -1,0 +1,70 @@
+users:
+  - username: Moussa25
+    password: Nguebitigue2000
+    full_name: TIGUE MOUSSA MADARIYA
+    phone: "693606003"
+    email: madariya.tigue@facsciences-uy1.cm
+    shell: /bin/bash
+    
+  - username: DupontJ
+    password: Azerty123
+    full_name: DUPONT Jean
+    phone: "612345678"
+    email: jean.dupont@mail.fr
+    shell: /bin/bash
+    
+  - username: ChenL
+    password: Passw0rd!
+    full_name: CHEN Li
+    phone: "698765432"
+    email: li.chen@mail.cn
+    shell: /bin/zsh
+    
+  - username: SmithA
+    password: Secure#2024
+    full_name: SMITH Alice
+    phone: "611223344"
+    email: alice.smith@mail.com
+    shell: /bin/bash
+    
+  - username: MullerK
+    password: MullerPass99
+    full_name: MULLER Klaus
+    phone: "605554433"
+    email: klaus.muller@mail.de
+    shell: /bin/bash
+    
+  - username: GarciaM
+    password: Barcelona1
+    full_name: GARCIA Maria
+    phone: "600112233"
+    email: maria.garcia@mail.es
+    shell: /bin/bash
+    
+  - username: RossiP
+    password: Roma2024!
+    full_name: ROSSI Paolo
+    phone: "633445566"
+    email: paolo.rossi@mail.it
+    shell: /bin/sh
+    
+  - username: KimS
+    password: SeoulPass1
+    full_name: KIM Soo-min
+    phone: "677889900"
+    email: soomin.kim@mail.kr
+    shell: /bin/bash
+    
+  - username: IvanovA
+    password: Moscow2024
+    full_name: IVANOV Alexey
+    phone: "644556677"
+    email: alexey.ivanov@mail.ru
+    shell: /bin/bash
+    
+  - username: DialloF
+    password: Dakar2024
+    full_name: DIALLO Fatou
+    phone: "655667788"
+    email: fatou.diallo@mail.sn
+    shell: /bin/bash
